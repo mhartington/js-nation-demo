@@ -1,33 +1,50 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { useEffect, useState } from 'react'
 import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
+import {BackgroundGeolocationPlugin} from "@capacitor-community/background-geolocation";
+import {registerPlugin} from "@capacitor/core";
+const BackgroundGeolocation = registerPlugin<BackgroundGeolocationPlugin>("BackgroundGeolocation");
 
+function App() {
+  useEffect(() => {
+    return () => {
+      BackgroundGeolocation.removeWatcher({id: watchId})
+    }
+  }, [])
+
+  const [loc, setLoc] = useState<{lat: number| null; long: number| null}>({lat: null, long: null})
+  const [watchId, setWatchId] = useState('');
+  const getLoc = async () => {
+    const id = await BackgroundGeolocation.addWatcher(   {
+        backgroundMessage: "Cancel to prevent battery drain.",
+        backgroundTitle: "Tracking You.",
+        requestPermissions: true,
+        stale: false,
+        distanceFilter: 50
+    }, (postition, err)=> {
+        if(err) {
+          console.error(err);
+        }
+      if(postition) {
+        setLoc({lat: postition.latitude, long: postition.longitude})
+      }
+    })
+    setWatchId(id)
+  }
   return (
     <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
+      <h1>Cap + React</h1>
       <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
+        <button onClick={getLoc}>
+            Get Loc 
         </button>
         <p>
           Edit <code>src/App.tsx</code> and save to test HMR
         </p>
       </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+      <pre>
+        {JSON.stringify(loc, null, 2)}
+      </pre>
     </>
   )
 }
